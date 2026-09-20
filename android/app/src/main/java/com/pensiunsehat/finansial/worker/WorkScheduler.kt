@@ -1,13 +1,9 @@
 package com.pensiunsehat.finansial.worker
 
 import android.content.Context
-import androidx.work.Constraints
 import androidx.work.Data
-import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.pensiunsehat.finansial.domain.calculator.MonthlyReminderScheduleCalculator
 import java.time.ZonedDateTime
@@ -44,14 +40,6 @@ object WorkScheduler {
             return
         }
 
-        val request = PeriodicWorkRequestBuilder<GoldPriceRefreshWorker>(1, TimeUnit.DAYS)
-            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .addTag("gold-price-refresh")
-            .build()
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-            "gold-price-refresh",
-            ExistingPeriodicWorkPolicy.UPDATE,
-            request,
-        )
+        return
     }
 }

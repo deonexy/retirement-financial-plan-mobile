@@ -18,7 +18,7 @@ object GoldCalculator {
             return GoldValuation(
                 totalSaleValue = null,
                 netValue = null,
-                statusLabel = "Harga emas belum tersedia",
+                statusLabel = formatGoldPriceStatus(snapshot),
             )
         }
 
@@ -28,17 +28,18 @@ object GoldCalculator {
             .takeIf { it >= BigDecimal.ZERO }
             ?: BigDecimal.ZERO
 
-        val label = when (snapshot.status) {
-            GoldPriceStatus.LIVE -> "Harga emas live ${snapshot.capturedAtIso.orEmpty()}"
-            GoldPriceStatus.LAST_KNOWN -> "Harga terakhir diperbarui pada ${snapshot.capturedAtIso.orEmpty()}"
-            GoldPriceStatus.STALE -> "Harga terakhir diperbarui pada ${snapshot.capturedAtIso.orEmpty()} (stale)"
-            GoldPriceStatus.UNAVAILABLE -> "Harga emas belum tersedia"
-        }
-
         return GoldValuation(
             totalSaleValue = totalSaleValue,
             netValue = netValue,
-            statusLabel = label,
+            statusLabel = formatGoldPriceStatus(snapshot),
         )
     }
+}
+
+fun formatGoldPriceStatus(snapshot: GoldPriceSnapshot?): String = when {
+    snapshot == null || snapshot.pricePerGram == null || snapshot.status == GoldPriceStatus.UNAVAILABLE -> "Harga emas belum tersedia"
+    snapshot.status == GoldPriceStatus.LIVE -> "Harga emas live ${snapshot.capturedAtIso.orEmpty()}"
+    snapshot.status == GoldPriceStatus.LAST_KNOWN -> "Harga terakhir diperbarui pada ${snapshot.capturedAtIso.orEmpty()}"
+    snapshot.status == GoldPriceStatus.STALE -> "Harga terakhir diperbarui pada ${snapshot.capturedAtIso.orEmpty()} (stale)"
+    else -> "Harga emas belum tersedia"
 }

@@ -30,6 +30,7 @@ import androidx.lifecycle.viewModelScope
 import com.pensiunsehat.finansial.data.repository.LocalFinancialRepository
 import com.pensiunsehat.finansial.data.repository.SettingsRepository
 import com.pensiunsehat.finansial.data.repository.ThemePreference
+import com.pensiunsehat.finansial.domain.calculator.formatGoldPriceStatus
 import com.pensiunsehat.finansial.domain.model.GoldPriceSnapshot
 import com.pensiunsehat.finansial.domain.model.GoldPriceStatus
 import com.pensiunsehat.finansial.worker.BackgroundWorkScheduler
@@ -53,7 +54,7 @@ class SettingsViewModel(
             monthlyReminderEnabled = settings.monthlyReminderEnabled,
             reminderDayOfMonth = settings.reminderDayOfMonth,
             goldPriceAutoRefresh = settings.goldPriceAutoRefresh,
-            lastGoldStatus = goldPrice.toStatusText(),
+            lastGoldStatus = formatGoldPriceStatus(goldPrice),
         )
     }.stateIn(
         viewModelScope,
@@ -214,11 +215,4 @@ private fun AccessibleSwitchRow(
         Text(label, modifier = Modifier.weight(1f))
         Switch(checked = checked, onCheckedChange = null)
     }
-}
-
-private fun GoldPriceSnapshot?.toStatusText(): String = when {
-    this == null || status == GoldPriceStatus.UNAVAILABLE || pricePerGram == null -> "Snapshot harga emas belum tersedia"
-    status == GoldPriceStatus.STALE -> "Harga terakhir diperbarui pada ${capturedAtIso.orEmpty()} (stale)"
-    status == GoldPriceStatus.LAST_KNOWN -> "Harga terakhir diperbarui pada ${capturedAtIso.orEmpty()}"
-    else -> "Harga live tersimpan pada ${capturedAtIso.orEmpty()}"
 }

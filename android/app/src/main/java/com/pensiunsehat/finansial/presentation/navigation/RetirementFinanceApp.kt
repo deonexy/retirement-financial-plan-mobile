@@ -1,14 +1,20 @@
 package com.pensiunsehat.finansial.presentation.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -28,12 +34,12 @@ import com.pensiunsehat.finansial.presentation.settings.SettingsViewModel
 import com.pensiunsehat.finansial.presentation.summary.SummaryScreen
 import com.pensiunsehat.finansial.presentation.summary.SummaryViewModel
 
-enum class AppDestination(val route: String, val label: String, val iconGlyph: String) {
-    SUMMARY("summary", "Summary", "Σ"),
-    PROFILE("profile", "Profile", "P"),
-    MONTHLY_UPDATE("monthly-update", "Update", "U"),
-    ASSET_PURCHASE("asset-purchase", "Aset", "A"),
-    SETTINGS("settings", "Settings", "⚙"),
+enum class AppDestination(val route: String, val label: String, val icon: ImageVector) {
+    SUMMARY("summary", "Summary", Icons.Filled.Home),
+    PROFILE("profile", "Profile", Icons.Filled.Person),
+    MONTHLY_UPDATE("monthly-update", "Update", Icons.Filled.DateRange),
+    ASSET_PURCHASE("asset-purchase", "Aset", Icons.Filled.AccountBalanceWallet),
+    SETTINGS("settings", "Settings", Icons.Filled.Settings),
 }
 
 @Composable
@@ -58,7 +64,7 @@ fun RetirementFinanceApp(appContainer: AppContainer) {
                                 restoreState = true
                             }
                         },
-                        icon = { Text(destination.iconGlyph, modifier = Modifier.semantics { contentDescription = destination.label }) },
+                        icon = { Icon(imageVector = destination.icon, contentDescription = destination.label) },
                         label = { Text(destination.label) },
                     )
                 }

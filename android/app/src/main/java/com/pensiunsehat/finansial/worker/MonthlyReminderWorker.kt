@@ -1,11 +1,14 @@
 package com.pensiunsehat.finansial.worker
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.pensiunsehat.finansial.R
@@ -39,6 +42,10 @@ class MonthlyReminderWorker(
             manager.createNotificationChannel(
                 NotificationChannel(channelId, "Pengingat bulanan", NotificationManager.IMPORTANCE_DEFAULT),
             )
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            return
         }
 
         val notification = NotificationCompat.Builder(applicationContext, channelId)
