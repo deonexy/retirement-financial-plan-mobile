@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -46,7 +47,15 @@ fun RetirementFinanceApp(appContainer: AppContainer) {
                 destinations.forEach { destination ->
                     NavigationBarItem(
                         selected = currentDestination?.hierarchy?.any { it.route == destination.route } == true,
-                        onClick = { navController.navigate(destination.route) },
+                        onClick = {
+                            navController.navigate(destination.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
                         icon = {},
                         label = { Text(destination.label) },
                     )
@@ -85,7 +94,11 @@ fun RetirementFinanceApp(appContainer: AppContainer) {
             }
             composable(AppDestination.SETTINGS.route) {
                 val viewModel: SettingsViewModel = viewModel(
-                    factory = SettingsViewModel.Factory(appContainer.settingsRepository, appContainer.financialRepository),
+                    factory = SettingsViewModel.Factory(
+                        settingsRepository = appContainer.settingsRepository,
+                        financialRepository = appContainer.financialRepository,
+                        backgroundWorkScheduler = appContainer.backgroundWorkScheduler,
+                    ),
                 )
                 SettingsScreen(viewModel)
             }

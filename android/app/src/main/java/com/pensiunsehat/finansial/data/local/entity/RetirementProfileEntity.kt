@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "retirement_profiles")
 data class RetirementProfileEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey val id: Long = 1,
     val currentAge: Int,
     val retirementAge: Int,
     val startingSavingsBalance: String,

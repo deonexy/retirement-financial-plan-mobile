@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GoldPriceSnapshotDao {
-    @Query("SELECT * FROM gold_price_snapshots ORDER BY id DESC LIMIT 1")
+    @Query("SELECT * FROM gold_price_snapshots ORDER BY capturedAtIso DESC, id DESC LIMIT 1")
     fun observeLatest(): Flow<GoldPriceSnapshotEntity?>
 
     @Upsert

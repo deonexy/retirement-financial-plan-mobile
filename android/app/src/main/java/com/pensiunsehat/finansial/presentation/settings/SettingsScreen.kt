@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -24,7 +23,7 @@ import com.pensiunsehat.finansial.data.repository.SettingsRepository
 import com.pensiunsehat.finansial.data.repository.ThemePreference
 import com.pensiunsehat.finansial.domain.model.GoldPriceSnapshot
 import com.pensiunsehat.finansial.domain.model.GoldPriceStatus
-import com.pensiunsehat.finansial.worker.WorkScheduler
+import com.pensiunsehat.finansial.worker.BackgroundWorkScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -34,6 +33,7 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val financialRepository: LocalFinancialRepository,
+    private val backgroundWorkScheduler: BackgroundWorkScheduler,
 ) : ViewModel() {
     val uiState: StateFlow<SettingsUiState> = combine(
         settingsRepository.settingsFlow,
@@ -57,11 +57,17 @@ class SettingsViewModel(
     }
 
     fun setMonthlyReminder(enabled: Boolean) {
-        viewModelScope.launch { settingsRepository.setMonthlyReminderEnabled(enabled) }
+        viewModelScope.launch {
+            settingsRepository.setMonthlyReminderEnabled(enabled)
+            backgroundWorkScheduler.setMonthlyReminderEnabled(enabled)
+        }
     }
 
     fun setGoldPriceAutoRefresh(enabled: Boolean) {
-        viewModelScope.launch { settingsRepository.setGoldPriceAutoRefresh(enabled) }
+        viewModelScope.launch {
+            settingsRepository.setGoldPriceAutoRefresh(enabled)
+            backgroundWorkScheduler.setGoldPriceRefreshEnabled(enabled)
+        }
     }
 
     fun seedOfflineGoldSnapshot() {
@@ -80,9 +86,11 @@ class SettingsViewModel(
     class Factory(
         private val settingsRepository: SettingsRepository,
         private val financialRepository: LocalFinancialRepository,
+        private val backgroundWorkScheduler: BackgroundWorkScheduler,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = SettingsViewModel(settingsRepository, financialRepository) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            SettingsViewModel(settingsRepository, financialRepository, backgroundWorkScheduler) as T
     }
 }
 
@@ -97,10 +105,11 @@ data class SettingsUiState(
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("Settings", style = MaterialTheme.typography.headlineSmall)
@@ -119,10 +128,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 Text("Pengingat bulanan via WorkManager")
                 Switch(
                     checked = state.monthlyReminderEnabled,
-                    onCheckedChange = {
-                        viewModel.setMonthlyReminder(it)
-                        WorkScheduler.setMonthlyReminderEnabled(context, it)
-                    },
+                    onCheckedChange = viewModel::setMonthlyReminder,
                 )
             }
         }
@@ -131,10 +137,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 Text("Refresh harga emas saat jaringan tersedia")
                 Switch(
                     checked = state.goldPriceAutoRefresh,
-                    onCheckedChange = {
-                        viewModel.setGoldPriceAutoRefresh(it)
-                        WorkScheduler.setGoldPriceRefreshEnabled(context, it)
-                    },
+                    onCheckedChange = viewModel::setGoldPriceAutoRefresh,
                 )
                 Text(state.lastGoldStatus)
                 Button(onClick = viewModel::seedOfflineGoldSnapshot, modifier = Modifier.fillMaxWidth()) {

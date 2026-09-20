@@ -37,7 +37,7 @@ fun RetirementProfileEntity.toDomain() = RetirementProfile(
 )
 
 fun RetirementProfile.toEntity() = RetirementProfileEntity(
-    id = id,
+    id = if (id == 0L) 1L else id,
     currentAge = currentAge,
     retirementAge = retirementAge,
     startingSavingsBalance = startingSavingsBalance.toPlainString(),

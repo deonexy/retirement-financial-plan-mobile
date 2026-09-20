@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RetirementProfileDao {
-    @Query("SELECT * FROM retirement_profiles ORDER BY updatedAtEpochMs DESC LIMIT 1")
+    @Query("SELECT * FROM retirement_profiles WHERE id = 1 LIMIT 1")
     fun observeLatest(): Flow<RetirementProfileEntity?>
 
     @Upsert
