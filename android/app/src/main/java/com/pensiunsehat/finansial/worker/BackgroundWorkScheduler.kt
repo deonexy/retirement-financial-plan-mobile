@@ -4,7 +4,6 @@ import android.content.Context
 
 interface BackgroundWorkScheduler {
     fun setMonthlyReminderEnabled(enabled: Boolean, reminderDayOfMonth: Int)
-    fun setGoldPriceRefreshEnabled(enabled: Boolean)
 }
 
 class WorkManagerBackgroundWorkScheduler(
@@ -12,9 +11,5 @@ class WorkManagerBackgroundWorkScheduler(
 ) : BackgroundWorkScheduler {
     override fun setMonthlyReminderEnabled(enabled: Boolean, reminderDayOfMonth: Int) {
         WorkScheduler.setMonthlyReminderEnabled(context, enabled, reminderDayOfMonth)
-    }
-
-    override fun setGoldPriceRefreshEnabled(enabled: Boolean) {
-        WorkScheduler.setGoldPriceRefreshEnabled(context, enabled)
     }
 }

@@ -53,7 +53,6 @@ class SettingsViewModel(
             themePreference = settings.themePreference,
             monthlyReminderEnabled = settings.monthlyReminderEnabled,
             reminderDayOfMonth = settings.reminderDayOfMonth,
-            goldPriceAutoRefresh = settings.goldPriceAutoRefresh,
             lastGoldStatus = formatGoldPriceStatus(goldPrice),
         )
     }.stateIn(
@@ -83,12 +82,6 @@ class SettingsViewModel(
         }
     }
 
-    fun setGoldPriceAutoRefresh(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.setGoldPriceAutoRefresh(enabled)
-            backgroundWorkScheduler.setGoldPriceRefreshEnabled(enabled)
-        }
-    }
 
     fun seedOfflineGoldSnapshot() {
         viewModelScope.launch {
@@ -118,7 +111,6 @@ data class SettingsUiState(
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
     val monthlyReminderEnabled: Boolean = false,
     val reminderDayOfMonth: Int = 1,
-    val goldPriceAutoRefresh: Boolean = false,
     val lastGoldStatus: String = "Belum ada snapshot harga emas",
 )
 
@@ -174,11 +166,6 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         }
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                AccessibleSwitchRow(
-                    label = "Refresh harga emas saat jaringan tersedia",
-                    checked = state.goldPriceAutoRefresh,
-                    onCheckedChange = viewModel::setGoldPriceAutoRefresh,
-                )
                 Text(state.lastGoldStatus)
                 Button(onClick = viewModel::seedOfflineGoldSnapshot, modifier = Modifier.fillMaxWidth()) {
                     Text("Simpan snapshot harga contoh")

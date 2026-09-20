@@ -34,12 +34,4 @@ object WorkScheduler {
         )
     }
 
-    fun setGoldPriceRefreshEnabled(context: Context, enabled: Boolean) {
-        if (!enabled) {
-            WorkManager.getInstance(context).cancelAllWorkByTag("gold-price-refresh")
-            return
-        }
-
-        return
-    }
 }

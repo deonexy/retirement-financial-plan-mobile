@@ -118,7 +118,7 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Text("Profile pensiun", style = MaterialTheme.typography.headlineSmall) }
+        item { Text("Profil pensiun", style = MaterialTheme.typography.headlineSmall) }
         item { FinanceField("Usia sekarang", state.currentAge) { viewModel.update { copy(currentAge = it) } } }
         item { FinanceField("Usia pensiun", state.retirementAge) { viewModel.update { copy(retirementAge = it) } } }
         item { FinanceField("Saldo awal tabungan", state.startingSavingsBalance) { viewModel.update { copy(startingSavingsBalance = it) } } }
@@ -146,7 +146,7 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
         }
         item {
             Button(onClick = viewModel::saveProfile, modifier = Modifier.fillMaxWidth()) {
-                Text("Simpan profile")
+                Text("Simpan profil")
             }
         }
         state.statusMessage?.let { message ->

@@ -26,7 +26,13 @@ class MonthlyReminderWorker(
             return Result.success()
         }
 
-        showReminderNotification()
+        val notificationPosted = showReminderNotification()
+        if (!notificationPosted) {
+            SettingsRepository(applicationContext).setMonthlyReminderEnabled(false)
+            WorkScheduler.setMonthlyReminderEnabled(applicationContext, enabled = false, reminderDayOfMonth = settings.reminderDayOfMonth)
+            return Result.success()
+        }
+
         WorkScheduler.setMonthlyReminderEnabled(
             applicationContext,
             enabled = true,
@@ -35,7 +41,7 @@ class MonthlyReminderWorker(
         return Result.success()
     }
 
-    private fun showReminderNotification() {
+    private fun showReminderNotification(): Boolean {
         val channelId = "monthly-reminder"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -45,7 +51,7 @@ class MonthlyReminderWorker(
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            return
+            return false
         }
 
         val notification = NotificationCompat.Builder(applicationContext, channelId)
@@ -56,5 +62,6 @@ class MonthlyReminderWorker(
             .build()
 
         NotificationManagerCompat.from(applicationContext).notify(1001, notification)
+        return true
     }
 }

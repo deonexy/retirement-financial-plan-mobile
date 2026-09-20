@@ -16,7 +16,7 @@ class SettingsRepository(private val context: Context) {
 
     val settingsFlow: Flow<AppSettings> = context.appSettingsDataStore.data.map { prefs ->
         AppSettings(
-            themePreference = prefs[THEME]?.let(ThemePreference::valueOf) ?: ThemePreference.SYSTEM,
+            themePreference = prefs[THEME]?.let { runCatching { ThemePreference.valueOf(it) }.getOrDefault(ThemePreference.SYSTEM) } ?: ThemePreference.SYSTEM,
             monthlyReminderEnabled = prefs[MONTHLY_REMINDER_ENABLED] ?: false,
             reminderDayOfMonth = prefs[REMINDER_DAY_OF_MONTH] ?: 1,
             goldPriceAutoRefresh = prefs[GOLD_PRICE_AUTO_REFRESH] ?: false,
