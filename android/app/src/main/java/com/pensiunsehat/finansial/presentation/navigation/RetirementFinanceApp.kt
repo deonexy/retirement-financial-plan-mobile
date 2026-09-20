@@ -26,12 +26,12 @@ import com.pensiunsehat.finansial.presentation.settings.SettingsViewModel
 import com.pensiunsehat.finansial.presentation.summary.SummaryScreen
 import com.pensiunsehat.finansial.presentation.summary.SummaryViewModel
 
-enum class AppDestination(val route: String, val label: String) {
-    SUMMARY("summary", "Summary"),
-    PROFILE("profile", "Profile"),
-    MONTHLY_UPDATE("monthly-update", "Update"),
-    ASSET_PURCHASE("asset-purchase", "Aset"),
-    SETTINGS("settings", "Settings"),
+enum class AppDestination(val route: String, val label: String, val iconGlyph: String) {
+    SUMMARY("summary", "Summary", "Σ"),
+    PROFILE("profile", "Profile", "P"),
+    MONTHLY_UPDATE("monthly-update", "Update", "U"),
+    ASSET_PURCHASE("asset-purchase", "Aset", "A"),
+    SETTINGS("settings", "Settings", "⚙"),
 }
 
 @Composable
@@ -56,7 +56,7 @@ fun RetirementFinanceApp(appContainer: AppContainer) {
                                 restoreState = true
                             }
                         },
-                        icon = {},
+                        icon = { Text(destination.iconGlyph) },
                         label = { Text(destination.label) },
                     )
                 }

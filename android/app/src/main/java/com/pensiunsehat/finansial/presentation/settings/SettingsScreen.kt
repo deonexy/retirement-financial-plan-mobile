@@ -2,9 +2,11 @@ package com.pensiunsehat.finansial.presentation.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -12,7 +14,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -59,7 +63,17 @@ class SettingsViewModel(
     fun setMonthlyReminder(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.setMonthlyReminderEnabled(enabled)
-            backgroundWorkScheduler.setMonthlyReminderEnabled(enabled)
+            backgroundWorkScheduler.setMonthlyReminderEnabled(enabled, uiState.value.reminderDayOfMonth)
+        }
+    }
+
+    fun setReminderDayOfMonth(day: Int) {
+        viewModelScope.launch {
+            val safeDay = day.coerceIn(1, 28)
+            settingsRepository.setReminderDayOfMonth(safeDay)
+            if (uiState.value.monthlyReminderEnabled) {
+                backgroundWorkScheduler.setMonthlyReminderEnabled(true, safeDay)
+            }
         }
     }
 
@@ -124,18 +138,27 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             }
         }
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Pengingat bulanan via WorkManager")
-                Switch(
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                AccessibleSwitchRow(
+                    label = "Pengingat bulanan via WorkManager",
                     checked = state.monthlyReminderEnabled,
                     onCheckedChange = viewModel::setMonthlyReminder,
                 )
+                Text("Hari pengingat: ${state.reminderDayOfMonth}")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { viewModel.setReminderDayOfMonth(state.reminderDayOfMonth - 1) }) {
+                        Text("-1 hari")
+                    }
+                    Button(onClick = { viewModel.setReminderDayOfMonth(state.reminderDayOfMonth + 1) }) {
+                        Text("+1 hari")
+                    }
+                }
             }
         }
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Refresh harga emas saat jaringan tersedia")
-                Switch(
+                AccessibleSwitchRow(
+                    label = "Refresh harga emas saat jaringan tersedia",
                     checked = state.goldPriceAutoRefresh,
                     onCheckedChange = viewModel::setGoldPriceAutoRefresh,
                 )
@@ -151,5 +174,23 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 modifier = Modifier.padding(16.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun AccessibleSwitchRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {},
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }

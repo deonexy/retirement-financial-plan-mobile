@@ -101,7 +101,9 @@ fun MonthlyUpdateScreen(viewModel: MonthlyUpdateViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { Text("Update bulanan", style = MaterialTheme.typography.headlineSmall) }

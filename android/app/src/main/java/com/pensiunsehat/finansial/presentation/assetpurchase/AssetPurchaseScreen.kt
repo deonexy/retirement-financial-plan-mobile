@@ -100,7 +100,9 @@ fun AssetPurchaseScreen(viewModel: AssetPurchaseViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { Text("Pembelian aset", style = MaterialTheme.typography.headlineSmall) }
