@@ -389,5 +389,5 @@ Untuk versi Android lokal, gunakan enkripsi perangkat/backup, Android Keystore, 
 
 ## Status validasi
 
-Build dokumentasi ini telah melewati pemeriksaan TypeScript, tes backend, dan build produksi. Peringatan ukuran chunk frontend dari Vite tidak menghalangi proses build. Panduan Android di atas adalah rencana arsitektur dan migrasi; project Android native belum dibuat pada repository ini.
+Build dokumentasi ini telah melewati pemeriksaan TypeScript, tes backend, dan build produksi. Peringatan ukuran chunk frontend dari Vite tidak menghalangi proses build. Fondasi Android native offline-first awal sekarang tersedia di direktori `android/` dengan modul domain pure Kotlin, skeleton Compose/Room/DataStore/WorkManager, dan dokumentasi menjalankan build/test pada `android/README.md`.
 
