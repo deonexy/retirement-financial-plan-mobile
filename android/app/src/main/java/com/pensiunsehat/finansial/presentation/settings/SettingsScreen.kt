@@ -30,6 +30,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.pensiunsehat.finansial.data.backup.BackupImportMode
+import com.pensiunsehat.finansial.data.backup.LocalEncryptedBackupManager
 import com.pensiunsehat.finansial.data.repository.LocalFinancialRepository
 import com.pensiunsehat.finansial.data.repository.SettingsRepository
 import com.pensiunsehat.finansial.data.repository.ThemePreference
@@ -38,6 +40,7 @@ import com.pensiunsehat.finansial.domain.model.GoldPriceSnapshot
 import com.pensiunsehat.finansial.domain.model.GoldPriceStatus
 import com.pensiunsehat.finansial.worker.BackgroundWorkScheduler
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -47,16 +50,21 @@ class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val financialRepository: LocalFinancialRepository,
     private val backgroundWorkScheduler: BackgroundWorkScheduler,
+    private val backupManager: LocalEncryptedBackupManager,
 ) : ViewModel() {
+    private val latestBackupPathState = MutableStateFlow(backupManager.latestBackupFile()?.absolutePath ?: "Belum ada backup terenkripsi")
     val uiState: StateFlow<SettingsUiState> = combine(
         settingsRepository.settingsFlow,
         financialRepository.observeGoldPriceSnapshot(),
-    ) { settings, goldPrice ->
+        latestBackupPathState,
+    ) { settings, goldPrice, latestBackupPath ->
         SettingsUiState(
             themePreference = settings.themePreference,
             monthlyReminderEnabled = settings.monthlyReminderEnabled,
             reminderDayOfMonth = settings.reminderDayOfMonth,
+            goldPriceAutoRefresh = settings.goldPriceAutoRefresh,
             lastGoldStatus = formatGoldPriceStatus(goldPrice),
+            latestBackupPath = latestBackupPath,
         )
     }.stateIn(
         viewModelScope,
@@ -85,6 +93,39 @@ class SettingsViewModel(
         }
     }
 
+    fun setGoldPriceAutoRefresh(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setGoldPriceAutoRefresh(enabled)
+            backgroundWorkScheduler.setGoldPriceAutoRefreshEnabled(enabled)
+        }
+    }
+
+    fun exportEncryptedBackup() {
+        viewModelScope.launch {
+            val resultMessage = runCatching { backupManager.exportBackup() }
+                .map {
+                    latestBackupPathState.value = it.absolutePath
+                    "Backup tersimpan: ${it.absolutePath}"
+                }
+                .getOrElse { "Gagal ekspor backup: ${it.message}" }
+            _statusMessage.value = resultMessage
+        }
+    }
+
+    fun importLatestBackup(mode: BackupImportMode) {
+        viewModelScope.launch {
+            val resultMessage = runCatching { backupManager.importLatestBackup(mode) }
+                .map {
+                    latestBackupPathState.value = backupManager.latestBackupFile()?.absolutePath ?: "Belum ada backup terenkripsi"
+                    "Impor ${mode.name.lowercase()} berhasil (update=${it.financialUpdateCount}, aset=${it.assetPurchaseCount}, emas=${it.goldSnapshotCount})"
+                }
+                .getOrElse { "Gagal impor backup: ${it.message}" }
+            _statusMessage.value = resultMessage
+        }
+    }
+
+    private val _statusMessage = MutableStateFlow("")
+    val statusMessage: StateFlow<String> = _statusMessage
 
     fun seedOfflineGoldSnapshot() {
         viewModelScope.launch {
@@ -103,10 +144,11 @@ class SettingsViewModel(
         private val settingsRepository: SettingsRepository,
         private val financialRepository: LocalFinancialRepository,
         private val backgroundWorkScheduler: BackgroundWorkScheduler,
+        private val backupManager: LocalEncryptedBackupManager,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            SettingsViewModel(settingsRepository, financialRepository, backgroundWorkScheduler) as T
+            SettingsViewModel(settingsRepository, financialRepository, backgroundWorkScheduler, backupManager) as T
     }
 }
 
@@ -114,12 +156,15 @@ data class SettingsUiState(
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
     val monthlyReminderEnabled: Boolean = false,
     val reminderDayOfMonth: Int = 1,
+    val goldPriceAutoRefresh: Boolean = false,
     val lastGoldStatus: String = "Belum ada snapshot harga emas",
+    val latestBackupPath: String = "Belum ada backup terenkripsi",
 )
 
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val statusMessage by viewModel.statusMessage.collectAsStateWithLifecycle()
     var reminderDayInput by rememberSaveable(state.reminderDayOfMonth) { mutableStateOf(state.reminderDayOfMonth.toString()) }
 
     Column(
@@ -159,6 +204,11 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     checked = state.monthlyReminderEnabled,
                     onCheckedChange = viewModel::setMonthlyReminder,
                 )
+                AccessibleSwitchRow(
+                    label = "Refresh harga emas otomatis (online)",
+                    checked = state.goldPriceAutoRefresh,
+                    onCheckedChange = viewModel::setGoldPriceAutoRefresh,
+                )
                 OutlinedTextField(
                     value = reminderDayInput,
                     onValueChange = { input ->
@@ -176,6 +226,23 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 Text(state.lastGoldStatus)
                 Button(onClick = viewModel::seedOfflineGoldSnapshot, modifier = Modifier.fillMaxWidth()) {
                     Text("Simpan snapshot harga contoh")
+                }
+            }
+        }
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(state.latestBackupPath, style = MaterialTheme.typography.bodySmall)
+                Button(onClick = viewModel::exportEncryptedBackup, modifier = Modifier.fillMaxWidth()) {
+                    Text("Ekspor backup terenkripsi")
+                }
+                Button(onClick = { viewModel.importLatestBackup(BackupImportMode.MERGE) }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Impor backup terakhir (merge)")
+                }
+                Button(onClick = { viewModel.importLatestBackup(BackupImportMode.REPLACE) }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Impor backup terakhir (replace)")
+                }
+                if (statusMessage.isNotBlank()) {
+                    Text(statusMessage, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

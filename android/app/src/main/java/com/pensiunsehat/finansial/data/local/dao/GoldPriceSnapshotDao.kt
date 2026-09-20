@@ -11,6 +11,18 @@ interface GoldPriceSnapshotDao {
     @Query("SELECT * FROM gold_price_snapshots ORDER BY capturedAtEpochDay DESC, id DESC LIMIT 1")
     fun observeLatest(): Flow<GoldPriceSnapshotEntity?>
 
+    @Query("SELECT * FROM gold_price_snapshots ORDER BY capturedAtEpochDay DESC, id DESC LIMIT 1")
+    suspend fun getLatest(): GoldPriceSnapshotEntity?
+
+    @Query("SELECT * FROM gold_price_snapshots ORDER BY capturedAtEpochDay DESC, id DESC")
+    suspend fun getAll(): List<GoldPriceSnapshotEntity>
+
     @Upsert
     suspend fun upsert(entity: GoldPriceSnapshotEntity)
+
+    @Upsert
+    suspend fun upsertAll(entities: List<GoldPriceSnapshotEntity>)
+
+    @Query("DELETE FROM gold_price_snapshots")
+    suspend fun clearAll()
 }

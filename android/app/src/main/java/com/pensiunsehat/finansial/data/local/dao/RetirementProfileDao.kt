@@ -11,6 +11,12 @@ interface RetirementProfileDao {
     @Query("SELECT * FROM retirement_profiles WHERE id = 1 LIMIT 1")
     fun observeLatest(): Flow<RetirementProfileEntity?>
 
+    @Query("SELECT * FROM retirement_profiles WHERE id = 1 LIMIT 1")
+    suspend fun getLatest(): RetirementProfileEntity?
+
     @Upsert
     suspend fun upsert(entity: RetirementProfileEntity)
+
+    @Query("DELETE FROM retirement_profiles")
+    suspend fun clearAll()
 }

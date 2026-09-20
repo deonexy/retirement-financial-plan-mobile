@@ -19,5 +19,6 @@ class AppViewModelFactories(
         settingsRepository = appContainer.settingsRepository,
         financialRepository = appContainer.financialRepository,
         backgroundWorkScheduler = appContainer.backgroundWorkScheduler,
+        backupManager = appContainer.backupManager,
     )
 }

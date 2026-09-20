@@ -275,15 +275,15 @@ Alur migrasi:
 
 ### Checklist Definition of Done Android MVP
 
-- [ ] Aplikasi dapat dibuka dan digunakan tanpa koneksi internet.
-- [ ] Profile, Update, pembelian aset, dan ringkasan tersimpan di Room.
-- [ ] Saldo tabungan menghitung saldo awal + surplus positif − pembelian dari tabungan.
-- [ ] Kalkulator Android menghasilkan angka yang sama dengan contoh uji web.
-- [ ] Harga emas terakhir tetap terlihat saat offline dengan timestamp yang jelas.
-- [ ] Pengingat bulanan dijalankan oleh WorkManager.
-- [ ] Backup JSON terenkripsi dapat diekspor dan diimpor kembali.
-- [ ] Database migration test tersedia untuk setiap perubahan schema.
-- [ ] Tidak ada PIN, OTP, token, atau nomor rekening yang dicatat ke log.
+- [x] Aplikasi dapat dibuka dan digunakan tanpa koneksi internet.
+- [x] Profile, Update, pembelian aset, dan ringkasan tersimpan di Room.
+- [x] Saldo tabungan menghitung saldo awal + surplus positif − pembelian dari tabungan.
+- [x] Kalkulator Android menghasilkan angka yang sama dengan contoh uji web.
+- [x] Harga emas terakhir tetap terlihat saat offline dengan timestamp yang jelas.
+- [x] Pengingat bulanan dijalankan oleh WorkManager.
+- [x] Backup JSON terenkripsi dapat diekspor dan diimpor kembali.
+- [x] Database migration test tersedia untuk setiap perubahan schema.
+- [x] Tidak ada PIN, OTP, token, atau nomor rekening yang dicatat ke log.
 - [ ] Test unit, test database, dan smoke test UI lulus pada perangkat/emulator Android.
 
 ## Menjalankan web secara lokal
@@ -389,5 +389,4 @@ Untuk versi Android lokal, gunakan enkripsi perangkat/backup, Android Keystore, 
 
 ## Status validasi
 
-Build dokumentasi ini telah melewati pemeriksaan TypeScript, tes backend, dan build produksi. Peringatan ukuran chunk frontend dari Vite tidak menghalangi proses build. Fondasi Android native offline-first awal sekarang tersedia di direktori `android/` dengan modul domain pure Kotlin, skeleton Compose/Room/DataStore/WorkManager, dan dokumentasi menjalankan build/test pada `android/README.md`.
-
+Build dokumentasi ini telah melewati pemeriksaan TypeScript, tes backend, dan build produksi. Peringatan ukuran chunk frontend dari Vite tidak menghalangi proses build. Fondasi Android native offline-first di direktori `android/` kini mencakup modul domain pure Kotlin, implementasi Compose/Room/DataStore/WorkManager, refresh harga emas terjadwal, backup JSON terenkripsi (merge/replace), dan migration instrumentation test baseline.

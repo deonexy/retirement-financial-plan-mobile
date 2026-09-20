@@ -8,7 +8,7 @@ Implementasi awal Android native offline-first sekarang tersedia di direktori `a
 - `app/`: aplikasi Android berbasis Jetpack Compose + Material 3.
 - Penyimpanan lokal memakai Room untuk `RetirementProfile`, `FinancialUpdate`, `AssetPurchase`, dan `GoldPriceSnapshot`.
 - Pengaturan perangkat memakai DataStore untuk tema, pengingat, dan toggle refresh harga emas.
-- WorkManager disiapkan sebagai placeholder untuk pengingat bulanan dan refresh harga emas saat jaringan tersedia.
+- WorkManager aktif untuk pengingat bulanan dan refresh harga emas berkala saat jaringan tersedia.
 - Summary membaca satu `Flow<FinancialSummary>` dari repository/use case, bukan menghitung ulang di composable.
 
 ## Menjalankan build dan test
@@ -27,7 +27,7 @@ Catatan: build modul `app` membutuhkan akses ke Google Maven untuk Android Gradl
 
 - Semua data finansial inti dibaca/ditulis ke Room lebih dulu.
 - Auth/server sengaja tidak dipindahkan ke penyimpanan lokal dan tetap dianggap integrasi terpisah.
-- Refresh harga emas masih placeholder; aplikasi tetap dapat menampilkan status `harga terakhir diperbarui ...` atau `belum tersedia` saat offline.
+- Refresh harga emas otomatis berjalan via worker dan tetap fallback ke status `harga terakhir diperbarui ...` atau `belum tersedia` saat offline.
 
 ## Keamanan
 
@@ -35,12 +35,14 @@ Catatan: build modul `app` membutuhkan akses ke Google Maven untuk Android Gradl
 - Tidak ada logging data sensitif pada implementasi ini.
 - Android Keystore dan BiometricPrompt belum diaktifkan, tetapi tetap menjadi arah lanjutan yang didokumentasikan.
 
-## Migrasi web JSON (lanjutan)
+## Backup dan migrasi JSON terenkripsi
 
-Format migrasi JSON dari README belum diimplementasikan pada PR pertama ini. Struktur Room dan model domain sengaja dibuat dekat dengan istilah bisnis README agar fase ekspor/impor berikutnya lebih mudah.
+- Settings menyediakan ekspor backup JSON terenkripsi (`.json.enc`) ke direktori app external files.
+- Impor backup terakhir mendukung mode `merge` dan `replace` secara atomik dengan transaksi Room.
+- Payload backup menyertakan `backupVersion`, `exportedAt`, profile, update bulanan, pembelian aset, snapshot harga emas, dan settings.
 
 ## Batasan dan TODO terukur
 
-- Worker masih placeholder/no-op sampai integrasi notifikasi dan refresh harga emas dipilih.
-- Migration instrumentation test Room belum ditambahkan pada PR pertama ini. TODO berikutnya: tambahkan skema tersemat dan test `MigrationTestHelper` saat pipeline/emulator Android instrumentation tersedia.
-- Belum ada sinkronisasi cloud, ekspor/impor terenkripsi, atau proteksi biometric aktif.
+- Sinkronisasi cloud masih belum tersedia (tetap local-first).
+- Proteksi biometric app lock belum diaktifkan.
+- Validasi instrumentation/CI Android penuh masih bergantung akses Google Maven pada environment runner.
