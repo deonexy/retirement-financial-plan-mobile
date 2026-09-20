@@ -9,7 +9,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import java.time.Duration
+import com.pensiunsehat.finansial.domain.calculator.MonthlyReminderScheduleCalculator
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 
@@ -29,7 +29,7 @@ object WorkScheduler {
                     .putInt(REMINDER_DAY_OF_MONTH, day)
                     .build(),
             )
-            .setInitialDelay(calculateNextMonthlyDelay(day), TimeUnit.MILLISECONDS)
+            .setInitialDelay(MonthlyReminderScheduleCalculator.delayMillis(ZonedDateTime.now(), day), TimeUnit.MILLISECONDS)
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             "monthly-reminder",
@@ -52,25 +52,5 @@ object WorkScheduler {
             ExistingPeriodicWorkPolicy.UPDATE,
             request,
         )
-    }
-
-    private fun calculateNextMonthlyDelay(reminderDayOfMonth: Int): Long {
-        val now = ZonedDateTime.now()
-        val todayTarget = now.withDayOfMonth(reminderDayOfMonth.coerceAtMost(now.toLocalDate().lengthOfMonth()))
-            .withHour(9)
-            .withMinute(0)
-            .withSecond(0)
-            .withNano(0)
-        val nextRun = if (todayTarget.isAfter(now)) {
-            todayTarget
-        } else {
-            val nextMonth = now.plusMonths(1)
-            nextMonth.withDayOfMonth(reminderDayOfMonth.coerceAtMost(nextMonth.toLocalDate().lengthOfMonth()))
-                .withHour(9)
-                .withMinute(0)
-                .withSecond(0)
-                .withNano(0)
-        }
-        return Duration.between(now, nextRun).toMillis().coerceAtLeast(0)
     }
 }

@@ -119,7 +119,7 @@ fun GoldPriceSnapshotEntity.toDomain() = GoldPriceSnapshot(
     currency = currency,
     source = source,
     capturedAtIso = capturedAtIso,
-    status = GoldPriceStatus.valueOf(status),
+    status = runCatching { GoldPriceStatus.valueOf(status) }.getOrDefault(GoldPriceStatus.UNAVAILABLE),
 )
 
 fun GoldPriceSnapshot.toEntity() = GoldPriceSnapshotEntity(

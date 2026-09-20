@@ -111,6 +111,53 @@ class RetirementCalculatorTest {
     }
 
     @Test
+    fun latestSurplusUsesParsedIsoDateOrdering() {
+        val summary = RetirementCalculator.calculateSummary(
+            profile = baseProfile,
+            updates = listOf(
+                FinancialUpdate(
+                    updateDate = "2026-10-01",
+                    netIncome = bd("9000000"),
+                    mandatoryExpenses = bd("1000000"),
+                    lifestyleExpenses = bd("1000000"),
+                    healthExpenses = bd("500000"),
+                    debtPayments = bd("500000"),
+                ),
+                FinancialUpdate(
+                    updateDate = "2026-9-30",
+                    netIncome = bd("3000000"),
+                    mandatoryExpenses = bd("1000000"),
+                    lifestyleExpenses = bd("1000000"),
+                    healthExpenses = bd("500000"),
+                    debtPayments = bd("500000"),
+                ),
+            ),
+            purchases = emptyList(),
+            goldPriceSnapshot = null,
+        )
+
+        assertMoney("6000000", summary.latestSurplus)
+    }
+
+    @Test
+    fun monthlyReminderSchedulerMovesToNextMonthAfterSameDayCutoff() {
+        val now = java.time.ZonedDateTime.parse("2026-01-31T10:00:00+07:00[Asia/Jakarta]")
+
+        val nextRun = MonthlyReminderScheduleCalculator.nextRun(now, 28)
+
+        assertEquals("2026-02-28T09:00+07:00[Asia/Jakarta]", nextRun.toString())
+    }
+
+    @Test
+    fun monthlyReminderSchedulerUsesSameMonthWhenTargetStillAhead() {
+        val now = java.time.ZonedDateTime.parse("2026-01-10T08:00:00+07:00[Asia/Jakarta]")
+
+        val nextRun = MonthlyReminderScheduleCalculator.nextRun(now, 15)
+
+        assertEquals("2026-01-15T09:00+07:00[Asia/Jakarta]", nextRun.toString())
+    }
+
+    @Test
     fun totalAssetsIncludeSavingsGoldAndOtherAssetBuckets() {
         val summary = RetirementCalculator.calculateSummary(
             profile = baseProfile,

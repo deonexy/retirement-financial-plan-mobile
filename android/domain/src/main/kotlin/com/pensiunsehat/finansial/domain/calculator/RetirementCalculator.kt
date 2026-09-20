@@ -7,6 +7,7 @@ import com.pensiunsehat.finansial.domain.model.FinancialUpdate
 import com.pensiunsehat.finansial.domain.model.GoldPriceSnapshot
 import com.pensiunsehat.finansial.domain.model.RetirementProfile
 import java.math.BigDecimal
+import java.time.LocalDate
 
 object RetirementCalculator {
     fun calculateSummary(
@@ -17,7 +18,10 @@ object RetirementCalculator {
     ): FinancialSummary {
         val currentSavings = SavingsCalculator.calculateCurrentSavings(profile, updates, purchases)
         val accumulatedSurplus = SavingsCalculator.calculateAccumulatedSurplus(updates)
-        val latestSurplus = updates.maxByOrNull { it.updateDate }?.let(SavingsCalculator::calculatePositiveSurplus) ?: BigDecimal.ZERO
+        val latestSurplus = updates
+            .maxWithOrNull(compareBy<FinancialUpdate> { it.updateDate.toIsoDateOrNull() ?: LocalDate.MIN }.thenBy { it.updateDate })
+            ?.let(SavingsCalculator::calculatePositiveSurplus)
+            ?: BigDecimal.ZERO
         val purchasesFromSavings = SavingsCalculator.calculatePurchasesFromSavings(purchases)
         val goldValuation = GoldCalculator.calculate(profile, goldPriceSnapshot)
         val purchasedStocks = purchases.filter { it.assetType == AssetType.STOCK }.fold(BigDecimal.ZERO) { total, purchase -> total + purchase.purchaseValueRupiah }
@@ -52,3 +56,5 @@ object RetirementCalculator {
         )
     }
 }
+
+private fun String.toIsoDateOrNull(): LocalDate? = runCatching { LocalDate.parse(this) }.getOrNull()

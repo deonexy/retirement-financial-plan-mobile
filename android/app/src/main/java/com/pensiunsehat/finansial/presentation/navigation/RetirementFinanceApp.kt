@@ -7,6 +7,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -56,7 +57,7 @@ fun RetirementFinanceApp(appContainer: AppContainer) {
                                 restoreState = true
                             }
                         },
-                        icon = { Text(destination.iconGlyph) },
+                        icon = { Text(destination.iconGlyph, modifier = Modifier.clearAndSetSemantics { }) },
                         label = { Text(destination.label) },
                     )
                 }

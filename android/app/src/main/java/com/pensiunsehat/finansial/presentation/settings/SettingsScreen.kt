@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,7 +51,7 @@ class SettingsViewModel(
             monthlyReminderEnabled = settings.monthlyReminderEnabled,
             reminderDayOfMonth = settings.reminderDayOfMonth,
             goldPriceAutoRefresh = settings.goldPriceAutoRefresh,
-            lastGoldStatus = goldPrice?.capturedAtIso?.let { "Harga terakhir tersimpan: $it" } ?: "Belum ada snapshot harga emas",
+            lastGoldStatus = goldPrice.toStatusText(),
         )
     }.stateIn(
         viewModelScope,
@@ -128,10 +131,23 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     ) {
         Text("Settings", style = MaterialTheme.typography.headlineSmall)
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .selectableGroup(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Text("Tema")
                 ThemePreference.entries.forEach { theme ->
-                    Button(onClick = { viewModel.setThemePreference(theme) }, modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        RadioButton(
+                            selected = state.themePreference == theme,
+                            onClick = { viewModel.setThemePreference(theme) },
+                        )
                         Text(theme.name)
                     }
                 }
@@ -144,15 +160,13 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     checked = state.monthlyReminderEnabled,
                     onCheckedChange = viewModel::setMonthlyReminder,
                 )
-                Text("Hari pengingat: ${state.reminderDayOfMonth}")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { viewModel.setReminderDayOfMonth(state.reminderDayOfMonth - 1) }) {
-                        Text("-1 hari")
-                    }
-                    Button(onClick = { viewModel.setReminderDayOfMonth(state.reminderDayOfMonth + 1) }) {
-                        Text("+1 hari")
-                    }
-                }
+                OutlinedTextField(
+                    value = state.reminderDayOfMonth.toString(),
+                    onValueChange = { input -> input.toIntOrNull()?.let(viewModel::setReminderDayOfMonth) },
+                    label = { Text("Hari pengingat (1-28)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
             }
         }
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -193,4 +207,11 @@ private fun AccessibleSwitchRow(
         Text(label, modifier = Modifier.weight(1f))
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
+}
+
+private fun GoldPriceSnapshot?.toStatusText(): String = when {
+    this == null || status == GoldPriceStatus.UNAVAILABLE || pricePerGram == null -> "Snapshot harga emas belum tersedia"
+    status == GoldPriceStatus.STALE -> "Harga terakhir diperbarui pada ${capturedAtIso.orEmpty()} (stale)"
+    status == GoldPriceStatus.LAST_KNOWN -> "Harga terakhir diperbarui pada ${capturedAtIso.orEmpty()}"
+    else -> "Harga live tersimpan pada ${capturedAtIso.orEmpty()}"
 }
