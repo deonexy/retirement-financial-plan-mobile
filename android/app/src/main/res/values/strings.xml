@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Pensiun Sehat Finansial</string>
+    <string name="monthly_reminder_title">Waktunya update kondisi keuangan bulanan</string>
+    <string name="monthly_reminder_message">Catat pendapatan, pengeluaran, dan utang terbaru agar ringkasan tetap akurat.</string>
+</resources>

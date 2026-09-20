@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.RetirementFinance" parent="Theme.Material3.DayNight.NoActionBar" />
+</resources>
