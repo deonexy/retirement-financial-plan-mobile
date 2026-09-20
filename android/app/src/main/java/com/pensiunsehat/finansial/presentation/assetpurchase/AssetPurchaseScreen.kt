@@ -80,7 +80,13 @@ class AssetPurchaseViewModel(
                     updatedAtEpochMs = System.currentTimeMillis(),
                 ),
             )
-            _uiState.value = AssetPurchaseUiState(
+            _uiState.value = state.copy(
+                assetName = "",
+                quantity = "1",
+                purchasePriceRupiah = "0",
+                purchaseValueRupiah = "0",
+                purchaseDate = state.purchaseDate,
+                notes = "",
                 history = _uiState.value.history,
                 statusMessage = "Pembelian aset tersimpan lokal",
             )

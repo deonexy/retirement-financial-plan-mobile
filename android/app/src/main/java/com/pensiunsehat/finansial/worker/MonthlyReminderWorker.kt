@@ -28,8 +28,11 @@ class MonthlyReminderWorker(
 
         val notificationPosted = showReminderNotification()
         if (!notificationPosted) {
-            SettingsRepository(applicationContext).setMonthlyReminderEnabled(false)
-            WorkScheduler.setMonthlyReminderEnabled(applicationContext, enabled = false, reminderDayOfMonth = settings.reminderDayOfMonth)
+            WorkScheduler.setMonthlyReminderEnabled(
+                applicationContext,
+                enabled = true,
+                reminderDayOfMonth = settings.reminderDayOfMonth,
+            )
             return Result.success()
         }
 

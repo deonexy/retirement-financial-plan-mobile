@@ -18,6 +18,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -117,6 +120,7 @@ data class SettingsUiState(
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var reminderDayInput by rememberSaveable(state.reminderDayOfMonth) { mutableStateOf(state.reminderDayOfMonth.toString()) }
 
     Column(
         modifier = Modifier
@@ -156,8 +160,11 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     onCheckedChange = viewModel::setMonthlyReminder,
                 )
                 OutlinedTextField(
-                    value = state.reminderDayOfMonth.toString(),
-                    onValueChange = { input -> input.toIntOrNull()?.let(viewModel::setReminderDayOfMonth) },
+                    value = reminderDayInput,
+                    onValueChange = { input ->
+                        reminderDayInput = input
+                        input.toIntOrNull()?.let(viewModel::setReminderDayOfMonth)
+                    },
                     label = { Text("Hari pengingat (1-28)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,

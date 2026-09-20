@@ -45,6 +45,7 @@ enum class AppDestination(val route: String, val label: String, val icon: ImageV
 @Composable
 fun RetirementFinanceApp(appContainer: AppContainer) {
     val navController = rememberNavController()
+    val factories = AppViewModelFactories(appContainer)
     val backStackEntry = navController.currentBackStackEntryAsState().value
     val currentDestination = backStackEntry?.destination
     val destinations = AppDestination.entries
@@ -78,35 +79,31 @@ fun RetirementFinanceApp(appContainer: AppContainer) {
         ) {
             composable(AppDestination.SUMMARY.route) {
                 val viewModel: SummaryViewModel = viewModel(
-                    factory = SummaryViewModel.Factory(appContainer.observeFinancialSummaryUseCase),
+                    factory = factories.summary(),
                 )
                 SummaryScreen(viewModel)
             }
             composable(AppDestination.PROFILE.route) {
                 val viewModel: ProfileViewModel = viewModel(
-                    factory = ProfileViewModel.Factory(appContainer.financialRepository),
+                    factory = factories.profile(),
                 )
                 ProfileScreen(viewModel)
             }
             composable(AppDestination.MONTHLY_UPDATE.route) {
                 val viewModel: MonthlyUpdateViewModel = viewModel(
-                    factory = MonthlyUpdateViewModel.Factory(appContainer.financialRepository),
+                    factory = factories.monthlyUpdate(),
                 )
                 MonthlyUpdateScreen(viewModel)
             }
             composable(AppDestination.ASSET_PURCHASE.route) {
                 val viewModel: AssetPurchaseViewModel = viewModel(
-                    factory = AssetPurchaseViewModel.Factory(appContainer.financialRepository),
+                    factory = factories.assetPurchase(),
                 )
                 AssetPurchaseScreen(viewModel)
             }
             composable(AppDestination.SETTINGS.route) {
                 val viewModel: SettingsViewModel = viewModel(
-                    factory = SettingsViewModel.Factory(
-                        settingsRepository = appContainer.settingsRepository,
-                        financialRepository = appContainer.financialRepository,
-                        backgroundWorkScheduler = appContainer.backgroundWorkScheduler,
-                    ),
+                    factory = factories.settings(),
                 )
                 SettingsScreen(viewModel)
             }
