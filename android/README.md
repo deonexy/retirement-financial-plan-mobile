@@ -37,9 +37,10 @@ Catatan: build modul `app` membutuhkan akses ke Google Maven untuk Android Gradl
 
 ## Backup dan migrasi JSON terenkripsi
 
-- Settings menyediakan ekspor backup JSON terenkripsi (`.json.enc`) ke direktori app external files.
-- Impor backup terakhir mendukung mode `merge` dan `replace` secara atomik dengan transaksi Room.
-- Payload backup menyertakan `backupVersion`, `exportedAt`, profile, update bulanan, pembelian aset, snapshot harga emas, dan settings.
+- Settings menyediakan ekspor backup JSON terenkripsi (`.json.enc`) ke direktori app external files dengan passphrase pengguna.
+- Impor backup terakhir mendukung mode `merge` dan `replace` secara atomik dengan transaksi Room, memakai passphrase yang sama.
+- Restorasi berfokus pada data finansial lokal; snapshot settings disertakan untuk audit/portabilitas backup.
+- Payload backup menyertakan `backupVersion`, `exportedAt`, profile, update bulanan, pembelian aset, snapshot harga emas, dan snapshot settings.
 
 ## Batasan dan TODO terukur
 

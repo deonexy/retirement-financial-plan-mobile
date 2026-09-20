@@ -5,10 +5,12 @@ import java.net.URL
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.math.roundToLong
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 class DefaultGoldPriceApi : GoldPriceApi {
-    override suspend fun fetchLatestGoldPrice(): GoldPricePayload {
+    override suspend fun fetchLatestGoldPrice(): GoldPricePayload = withContext(Dispatchers.IO) {
         val connection = (URL(GOLD_API_URL).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = 10_000
@@ -19,9 +21,10 @@ class DefaultGoldPriceApi : GoldPriceApi {
             if (connection.responseCode !in 200..299) error("Gold API error ${connection.responseCode}")
             val json = JSONObject(connection.inputStream.bufferedReader().use { reader -> reader.readText() })
             val pricePerGram = resolvePricePerGram(json)
+            val currency = resolveCurrency(json)
             GoldPricePayload(
                 pricePerGram = pricePerGram.toString(),
-                currency = "IDR",
+                currency = currency,
                 source = "gold-api",
                 capturedAtIso = LocalDate.now(ZoneOffset.UTC).toString(),
             )
@@ -39,6 +42,16 @@ class DefaultGoldPriceApi : GoldPriceApi {
             return perGram.roundToLong()
         }
         error("Gold API payload missing price field")
+    }
+
+    private fun resolveCurrency(json: JSONObject): String {
+        val detected = sequenceOf(
+            json.optString("currency"),
+            json.optString("currency_code"),
+            json.optString("curr"),
+        ).firstOrNull { it.isNotBlank() } ?: "IDR"
+        if (detected != "IDR") error("Unsupported currency $detected")
+        return detected
     }
 
     private companion object {

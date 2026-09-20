@@ -1,8 +1,6 @@
 package com.pensiunsehat.finansial.data.backup
 
 import android.content.Context
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
 import androidx.room.withTransaction
 import com.pensiunsehat.finansial.data.local.AppDatabase
 import com.pensiunsehat.finansial.data.local.entity.AssetPurchaseEntity
@@ -10,16 +8,16 @@ import com.pensiunsehat.finansial.data.local.entity.FinancialUpdateEntity
 import com.pensiunsehat.finansial.data.local.entity.GoldPriceSnapshotEntity
 import com.pensiunsehat.finansial.data.local.entity.RetirementProfileEntity
 import com.pensiunsehat.finansial.data.repository.SettingsRepository
-import com.pensiunsehat.finansial.data.repository.ThemePreference
 import java.io.File
-import java.security.KeyStore
+import java.security.SecureRandom
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
-import javax.crypto.SecretKey
+import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.SecretKeySpec
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
@@ -41,26 +39,27 @@ class LocalEncryptedBackupManager(
     private val database: AppDatabase,
     private val settingsRepository: SettingsRepository,
 ) {
-    suspend fun exportBackup(): File {
+    suspend fun exportBackup(passphrase: String): File {
+        require(passphrase.length >= 8) { "Passphrase backup minimal 8 karakter." }
         val payload = buildBackupPayload()
-        val encrypted = encrypt(payload.toByteArray(Charsets.UTF_8))
-        val backupDir = File(context.getExternalFilesDir(null), "backups").apply { mkdirs() }
-        val file = File(backupDir, "retirement-backup-${System.currentTimeMillis()}.json.enc")
-        file.writeBytes(encrypted)
-        return file
+        val encrypted = BackupCipher.encrypt(payload.toByteArray(Charsets.UTF_8), passphrase)
+        val backupRoot = context.getExternalFilesDir(null) ?: context.filesDir
+        val backupDir = File(backupRoot, "backups").apply { mkdirs() }
+        return File(backupDir, "retirement-backup-${System.currentTimeMillis()}.json.enc").also {
+            it.writeBytes(encrypted)
+        }
     }
 
-    suspend fun importLatestBackup(mode: BackupImportMode): BackupImportSummary {
+    suspend fun importLatestBackup(mode: BackupImportMode, passphrase: String): BackupImportSummary {
+        require(passphrase.length >= 8) { "Passphrase backup minimal 8 karakter." }
         val file = latestBackupFile() ?: throw IllegalStateException("Belum ada file backup.")
-        val decrypted = decrypt(file.readBytes()).toString(Charsets.UTF_8)
+        val decrypted = BackupCipher.decrypt(file.readBytes(), passphrase).toString(Charsets.UTF_8)
         val payload = JSONObject(decrypted)
 
         val profile = payload.optJSONObject("profile")?.toProfileEntity()
         val financialUpdates = payload.optJSONArray("financialUpdates").toFinancialUpdateEntities()
         val assetPurchases = payload.optJSONArray("assetPurchases").toAssetPurchaseEntities()
         val goldSnapshots = payload.optJSONArray("goldPriceSnapshots").toGoldPriceSnapshotEntities()
-        val settings = payload.optJSONObject("settings")
-
         database.withTransaction {
             if (mode == BackupImportMode.REPLACE) {
                 database.retirementProfileDao().clearAll()
@@ -74,8 +73,6 @@ class LocalEncryptedBackupManager(
             if (goldSnapshots.isNotEmpty()) database.goldPriceSnapshotDao().upsertAll(goldSnapshots)
         }
 
-        settings?.let { applySettings(it) }
-
         return BackupImportSummary(
             profileImported = profile != null,
             financialUpdateCount = financialUpdates.size,
@@ -85,7 +82,8 @@ class LocalEncryptedBackupManager(
     }
 
     fun latestBackupFile(): File? {
-        val backupDir = File(context.getExternalFilesDir(null), "backups")
+        val backupRoot = context.getExternalFilesDir(null) ?: context.filesDir
+        val backupDir = File(backupRoot, "backups")
         return backupDir.listFiles()
             ?.filter { it.isFile && it.name.endsWith(".json.enc") }
             ?.maxByOrNull { it.lastModified() }
@@ -96,8 +94,6 @@ class LocalEncryptedBackupManager(
         val financialUpdates = database.financialUpdateDao().getAll()
         val assetPurchases = database.assetPurchaseDao().getAll()
         val goldSnapshots = database.goldPriceSnapshotDao().getAll()
-        val settings = runCatching { settingsRepository.settingsFlow.first() }.getOrDefault(settingsRepository.defaultSettings)
-
         return JSONObject()
             .put("backupVersion", 1)
             .put("exportedAt", Instant.now().toString())
@@ -105,63 +101,7 @@ class LocalEncryptedBackupManager(
             .put("financialUpdates", JSONArray(financialUpdates.map { it.toJson() }))
             .put("assetPurchases", JSONArray(assetPurchases.map { it.toJson() }))
             .put("goldPriceSnapshots", JSONArray(goldSnapshots.map { it.toJson() }))
-            .put(
-                "settings",
-                JSONObject()
-                    .put("themePreference", settings.themePreference.name)
-                    .put("monthlyReminderEnabled", settings.monthlyReminderEnabled)
-                    .put("reminderDayOfMonth", settings.reminderDayOfMonth)
-                    .put("goldPriceAutoRefresh", settings.goldPriceAutoRefresh),
-            )
             .toString()
-    }
-
-    private suspend fun applySettings(settings: JSONObject) {
-        settings.optString("themePreference").takeIf { it.isNotBlank() }?.let {
-            runCatching { settingsRepository.setThemePreference(ThemePreference.valueOf(it)) }
-        }
-        if (settings.has("monthlyReminderEnabled")) {
-            settingsRepository.setMonthlyReminderEnabled(settings.optBoolean("monthlyReminderEnabled"))
-        }
-        if (settings.has("reminderDayOfMonth")) {
-            settingsRepository.setReminderDayOfMonth(settings.optInt("reminderDayOfMonth", 1))
-        }
-        if (settings.has("goldPriceAutoRefresh")) {
-            settingsRepository.setGoldPriceAutoRefresh(settings.optBoolean("goldPriceAutoRefresh"))
-        }
-    }
-
-    private fun encrypt(plain: ByteArray): ByteArray {
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateSecretKey())
-        val iv = cipher.iv
-        val ciphertext = cipher.doFinal(plain)
-        return iv + ciphertext
-    }
-
-    private fun decrypt(payload: ByteArray): ByteArray {
-        require(payload.size > 12) { "Backup file tidak valid." }
-        val iv = payload.copyOfRange(0, 12)
-        val ciphertext = payload.copyOfRange(12, payload.size)
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, getOrCreateSecretKey(), GCMParameterSpec(128, iv))
-        return cipher.doFinal(ciphertext)
-    }
-
-    private fun getOrCreateSecretKey(): SecretKey {
-        val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        val existing = keyStore.getKey(KEY_ALIAS, null) as? SecretKey
-        if (existing != null) return existing
-        val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
-        val spec = KeyGenParameterSpec.Builder(
-            KEY_ALIAS,
-            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-        ).setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-            .setUserAuthenticationRequired(false)
-            .build()
-        keyGenerator.init(spec)
-        return keyGenerator.generateKey()
     }
 
     private fun RetirementProfileEntity.toJson(): JSONObject = JSONObject()
@@ -304,8 +244,34 @@ class LocalEncryptedBackupManager(
             }
         }
     }
+}
 
-    private companion object {
-        const val KEY_ALIAS = "retirement_backup_key"
+internal object BackupCipher {
+    fun encrypt(plain: ByteArray, passphrase: String): ByteArray {
+        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val iv = ByteArray(12).also { SecureRandom().nextBytes(it) }
+        val key = deriveKey(passphrase, salt)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(128, iv))
+        val ciphertext = cipher.doFinal(plain)
+        return salt + iv + ciphertext
+    }
+
+    fun decrypt(payload: ByteArray, passphrase: String): ByteArray {
+        require(payload.size > 28) { "Backup file tidak valid." }
+        val salt = payload.copyOfRange(0, 16)
+        val iv = payload.copyOfRange(16, 28)
+        val ciphertext = payload.copyOfRange(28, payload.size)
+        val key = deriveKey(passphrase, salt)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, iv))
+        return cipher.doFinal(ciphertext)
+    }
+
+    private fun deriveKey(passphrase: String, salt: ByteArray): SecretKeySpec {
+        val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+        val spec = PBEKeySpec(passphrase.toCharArray(), salt, 120_000, 256)
+        val keyBytes = factory.generateSecret(spec).encoded
+        return SecretKeySpec(keyBytes, "AES")
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Button
@@ -25,6 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -100,9 +103,9 @@ class SettingsViewModel(
         }
     }
 
-    fun exportEncryptedBackup() {
+    fun exportEncryptedBackup(passphrase: String) {
         viewModelScope.launch {
-            val resultMessage = runCatching { backupManager.exportBackup() }
+            val resultMessage = runCatching { backupManager.exportBackup(passphrase) }
                 .map {
                     latestBackupPathState.value = it.absolutePath
                     "Backup tersimpan: ${it.absolutePath}"
@@ -112,9 +115,9 @@ class SettingsViewModel(
         }
     }
 
-    fun importLatestBackup(mode: BackupImportMode) {
+    fun importLatestBackup(mode: BackupImportMode, passphrase: String) {
         viewModelScope.launch {
-            val resultMessage = runCatching { backupManager.importLatestBackup(mode) }
+            val resultMessage = runCatching { backupManager.importLatestBackup(mode, passphrase) }
                 .map {
                     latestBackupPathState.value = backupManager.latestBackupFile()?.absolutePath ?: "Belum ada backup terenkripsi"
                     "Impor ${mode.name.lowercase()} berhasil (update=${it.financialUpdateCount}, aset=${it.assetPurchaseCount}, emas=${it.goldSnapshotCount})"
@@ -166,6 +169,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val statusMessage by viewModel.statusMessage.collectAsStateWithLifecycle()
     var reminderDayInput by rememberSaveable(state.reminderDayOfMonth) { mutableStateOf(state.reminderDayOfMonth.toString()) }
+    var backupPassphrase by rememberSaveable { mutableStateOf("") }
+    var confirmReplace by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -232,14 +237,42 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(state.latestBackupPath, style = MaterialTheme.typography.bodySmall)
-                Button(onClick = viewModel::exportEncryptedBackup, modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = backupPassphrase,
+                    onValueChange = {
+                        backupPassphrase = it
+                        confirmReplace = false
+                    },
+                    label = { Text("Passphrase backup (min. 8 karakter)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                )
+                Button(onClick = { viewModel.exportEncryptedBackup(backupPassphrase) }, modifier = Modifier.fillMaxWidth()) {
                     Text("Ekspor backup terenkripsi")
                 }
-                Button(onClick = { viewModel.importLatestBackup(BackupImportMode.MERGE) }, modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = { viewModel.importLatestBackup(BackupImportMode.MERGE, backupPassphrase) }, modifier = Modifier.fillMaxWidth()) {
                     Text("Impor backup terakhir (merge)")
                 }
-                Button(onClick = { viewModel.importLatestBackup(BackupImportMode.REPLACE) }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Impor backup terakhir (replace)")
+                Button(
+                    onClick = {
+                        if (confirmReplace) {
+                            viewModel.importLatestBackup(BackupImportMode.REPLACE, backupPassphrase)
+                            confirmReplace = false
+                        } else {
+                            confirmReplace = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        if (confirmReplace) {
+                            "Konfirmasi replace: hapus data lokal lalu impor"
+                        } else {
+                            "Impor backup terakhir (replace - overwrite data)"
+                        },
+                    )
                 }
                 if (statusMessage.isNotBlank()) {
                     Text(statusMessage, style = MaterialTheme.typography.bodySmall)
