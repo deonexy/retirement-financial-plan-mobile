@@ -10,5 +10,6 @@ data class GoldPriceSnapshotEntity(
     val currency: String,
     val source: String,
     val capturedAtIso: String?,
+    val capturedAtEpochDay: Long? = null,
     val status: String,
 )

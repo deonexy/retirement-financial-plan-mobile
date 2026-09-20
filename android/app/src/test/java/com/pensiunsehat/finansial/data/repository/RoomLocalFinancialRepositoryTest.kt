@@ -17,6 +17,40 @@ import org.junit.Test
 
 class RoomLocalFinancialRepositoryTest {
     @Test
+    fun fakeDaoOrderingKeepsMixedDateFormatsChronological() = runTest {
+        val updateDao = FakeFinancialUpdateDao()
+
+        updateDao.upsert(
+            FinancialUpdateEntity(
+                updateDate = "2026-9-30",
+                netIncome = "0",
+                mandatoryExpenses = "0",
+                lifestyleExpenses = "0",
+                healthExpenses = "0",
+                debtPayments = "0",
+                remainingDebt = "0",
+                notes = null,
+                updatedAtEpochMs = 1,
+            ),
+        )
+        updateDao.upsert(
+            FinancialUpdateEntity(
+                updateDate = "2026-10-01",
+                netIncome = "0",
+                mandatoryExpenses = "0",
+                lifestyleExpenses = "0",
+                healthExpenses = "0",
+                debtPayments = "0",
+                remainingDebt = "0",
+                notes = null,
+                updatedAtEpochMs = 2,
+            ),
+        )
+
+        assertEquals("2026-10-01", updateDao.observeAll().first().first().updateDate)
+    }
+
+    @Test
     fun observeFinancialSummaryCombinesLocalFlows() = runTest {
         val profileDao = FakeRetirementProfileDao()
         val updateDao = FakeFinancialUpdateDao()
@@ -104,7 +138,7 @@ class RoomLocalFinancialRepositoryTest {
         private val state = MutableStateFlow<List<FinancialUpdateEntity>>(emptyList())
         override fun observeAll(): Flow<List<FinancialUpdateEntity>> = state
         override suspend fun upsert(entity: FinancialUpdateEntity) {
-            state.value = (state.value + entity).sortedByDescending { it.updateDate }
+            state.value = (state.value + entity).sortedByDescending { flexibleEpochDay(it.updateDate) }
         }
     }
 
@@ -112,7 +146,7 @@ class RoomLocalFinancialRepositoryTest {
         private val state = MutableStateFlow<List<AssetPurchaseEntity>>(emptyList())
         override fun observeAll(): Flow<List<AssetPurchaseEntity>> = state
         override suspend fun upsert(entity: AssetPurchaseEntity) {
-            state.value = (state.value + entity).sortedByDescending { it.purchaseDate }
+            state.value = (state.value + entity).sortedByDescending { flexibleEpochDay(it.purchaseDate) }
         }
     }
 
@@ -123,4 +157,13 @@ class RoomLocalFinancialRepositoryTest {
             state.value = entity
         }
     }
+}
+
+private fun flexibleEpochDay(value: String): Long {
+    val parts = value.split('-')
+    if (parts.size != 3) return 0L
+    val year = parts[0].toIntOrNull() ?: return 0L
+    val month = parts[1].toIntOrNull() ?: return 0L
+    val day = parts[2].toIntOrNull() ?: return 0L
+    return runCatching { java.time.LocalDate.of(year, month, day).toEpochDay() }.getOrDefault(0L)
 }

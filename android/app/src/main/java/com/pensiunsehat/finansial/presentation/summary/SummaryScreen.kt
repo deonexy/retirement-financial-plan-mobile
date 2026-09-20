@@ -62,8 +62,7 @@ fun SummaryScreen(viewModel: SummaryViewModel) {
         if (summary.suggestions.isNotEmpty()) {
             StatusCard(
                 title = "Saran tindakan",
-                value = summary.suggestions.joinToString(separator = "
-• ", prefix = "• "),
+                value = summary.suggestions.joinToString(separator = "\n• ", prefix = "• "),
             )
         }
     }

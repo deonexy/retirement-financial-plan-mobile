@@ -134,7 +134,7 @@ fun MonthlyUpdateScreen(viewModel: MonthlyUpdateViewModel) {
         }
         if (state.history.isNotEmpty()) {
             item { Text("Riwayat lokal", style = MaterialTheme.typography.titleMedium) }
-            items(state.history, key = { it.id }) { update ->
+            items(state.history) { update ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(update.updateDate, style = MaterialTheme.typography.labelLarge)

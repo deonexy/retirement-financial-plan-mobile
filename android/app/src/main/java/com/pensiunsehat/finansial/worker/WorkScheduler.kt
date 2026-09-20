@@ -40,12 +40,13 @@ object WorkScheduler {
 
     fun setGoldPriceRefreshEnabled(context: Context, enabled: Boolean) {
         if (!enabled) {
-            WorkManager.getInstance(context).cancelUniqueWork("gold-price-refresh")
+            WorkManager.getInstance(context).cancelAllWorkByTag("gold-price-refresh")
             return
         }
 
         val request = PeriodicWorkRequestBuilder<GoldPriceRefreshWorker>(1, TimeUnit.DAYS)
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .addTag("gold-price-refresh")
             .build()
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             "gold-price-refresh",

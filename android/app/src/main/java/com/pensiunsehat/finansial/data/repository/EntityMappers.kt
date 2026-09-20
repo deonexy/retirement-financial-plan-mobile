@@ -12,6 +12,7 @@ import com.pensiunsehat.finansial.domain.model.GoldPriceSnapshot
 import com.pensiunsehat.finansial.domain.model.GoldPriceStatus
 import com.pensiunsehat.finansial.domain.model.RetirementProfile
 import java.math.BigDecimal
+import java.time.LocalDate
 
 fun RetirementProfileEntity.toDomain() = RetirementProfile(
     id = id,
@@ -75,6 +76,7 @@ fun FinancialUpdateEntity.toDomain() = FinancialUpdate(
 fun FinancialUpdate.toEntity() = FinancialUpdateEntity(
     id = id,
     updateDate = updateDate,
+    sortDateEpochDay = updateDate.toEpochDaySafe(),
     netIncome = netIncome.toPlainString(),
     mandatoryExpenses = mandatoryExpenses.toPlainString(),
     lifestyleExpenses = lifestyleExpenses.toPlainString(),
@@ -108,6 +110,7 @@ fun AssetPurchase.toEntity() = AssetPurchaseEntity(
     purchasePriceRupiah = purchasePriceRupiah.toPlainString(),
     purchaseValueRupiah = purchaseValueRupiah.toPlainString(),
     purchaseDate = purchaseDate,
+    sortDateEpochDay = purchaseDate.toEpochDaySafe(),
     fundingSource = fundingSource.name,
     notes = notes,
     updatedAtEpochMs = updatedAtEpochMs,
@@ -128,9 +131,19 @@ fun GoldPriceSnapshot.toEntity() = GoldPriceSnapshotEntity(
     currency = currency,
     source = source,
     capturedAtIso = capturedAtIso,
+    capturedAtEpochDay = capturedAtIso?.toEpochDaySafe(),
     status = status.name,
 )
 
 private fun String.toAssetType(): AssetType = runCatching { AssetType.valueOf(this) }.getOrDefault(AssetType.OTHER)
 private fun String.toFundingSource(): FundingSource = runCatching { FundingSource.valueOf(this) }.getOrDefault(FundingSource.NON_SAVINGS)
 private fun String.toBigDecimalSafe(): BigDecimal = toBigDecimalOrNull() ?: BigDecimal.ZERO
+private fun String.toEpochDaySafe(): Long = toFlexibleLocalDate()?.toEpochDay() ?: 0L
+private fun String.toFlexibleLocalDate(): LocalDate? {
+    val parts = split('-')
+    if (parts.size != 3) return null
+    val year = parts[0].toIntOrNull() ?: return null
+    val month = parts[1].toIntOrNull() ?: return null
+    val day = parts[2].toIntOrNull() ?: return null
+    return runCatching { LocalDate.of(year, month, day) }.getOrNull()
+}

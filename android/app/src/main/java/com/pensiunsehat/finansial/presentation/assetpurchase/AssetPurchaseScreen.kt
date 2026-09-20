@@ -144,7 +144,7 @@ fun AssetPurchaseScreen(viewModel: AssetPurchaseViewModel) {
         }
         if (state.history.isNotEmpty()) {
             item { Text("Riwayat pembelian", style = MaterialTheme.typography.titleMedium) }
-            items(state.history, key = { it.id }) { purchase ->
+            items(state.history) { purchase ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("${purchase.assetType.name} • ${purchase.assetName}", style = MaterialTheme.typography.labelLarge)

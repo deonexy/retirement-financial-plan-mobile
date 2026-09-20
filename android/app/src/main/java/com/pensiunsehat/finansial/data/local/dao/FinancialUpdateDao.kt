@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FinancialUpdateDao {
-    @Query("SELECT * FROM financial_updates ORDER BY updateDate DESC, updatedAtEpochMs DESC")
+    @Query("SELECT * FROM financial_updates ORDER BY sortDateEpochDay DESC, updatedAtEpochMs DESC")
     fun observeAll(): Flow<List<FinancialUpdateEntity>>
 
     @Upsert

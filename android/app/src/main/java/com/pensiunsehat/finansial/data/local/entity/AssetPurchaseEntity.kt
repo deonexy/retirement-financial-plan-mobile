@@ -13,6 +13,7 @@ data class AssetPurchaseEntity(
     val purchasePriceRupiah: String,
     val purchaseValueRupiah: String,
     val purchaseDate: String,
+    val sortDateEpochDay: Long = 0,
     val fundingSource: String,
     val notes: String?,
     val updatedAtEpochMs: Long,

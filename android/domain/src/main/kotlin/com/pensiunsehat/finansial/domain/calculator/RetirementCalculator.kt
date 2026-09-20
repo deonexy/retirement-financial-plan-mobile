@@ -19,7 +19,7 @@ object RetirementCalculator {
         val currentSavings = SavingsCalculator.calculateCurrentSavings(profile, updates, purchases)
         val accumulatedSurplus = SavingsCalculator.calculateAccumulatedSurplus(updates)
         val latestSurplus = updates
-            .maxWithOrNull(compareBy<FinancialUpdate> { it.updateDate.toIsoDateOrNull() ?: LocalDate.MIN }.thenBy { it.updateDate })
+            .maxWithOrNull(compareBy<FinancialUpdate> { it.updateDate.toFlexibleLocalDate() ?: LocalDate.MIN }.thenBy { it.updateDate })
             ?.let(SavingsCalculator::calculatePositiveSurplus)
             ?: BigDecimal.ZERO
         val purchasesFromSavings = SavingsCalculator.calculatePurchasesFromSavings(purchases)
@@ -57,4 +57,11 @@ object RetirementCalculator {
     }
 }
 
-private fun String.toIsoDateOrNull(): LocalDate? = runCatching { LocalDate.parse(this) }.getOrNull()
+private fun String.toFlexibleLocalDate(): LocalDate? {
+    val parts = split('-')
+    if (parts.size != 3) return null
+    val year = parts[0].toIntOrNull() ?: return null
+    val month = parts[1].toIntOrNull() ?: return null
+    val day = parts[2].toIntOrNull() ?: return null
+    return runCatching { LocalDate.of(year, month, day) }.getOrNull()
+}

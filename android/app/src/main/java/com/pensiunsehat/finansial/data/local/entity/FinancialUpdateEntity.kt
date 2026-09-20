@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class FinancialUpdateEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val updateDate: String,
+    val sortDateEpochDay: Long = 0,
     val netIncome: String,
     val mandatoryExpenses: String,
     val lifestyleExpenses: String,
